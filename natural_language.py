@@ -49,7 +49,8 @@ def on_natural_language(keywords: Union[Optional[Iterable], str, Callable] = Non
                                    only_short_message=only_short_message,
                                    allow_empty_message=allow_empty_message)
         _nl_processors.add(nl_processor)
-        return func
+        # return func
+        return nl_processor
 
     if isinstance(keywords, Callable):
         # here "keywords" is the function to be decorated
@@ -97,7 +98,8 @@ class IntentCommand(NamedTuple):
     current_arg: str = ''
 
 
-async def handle_natural_language(bot: NoneBot, ctx: Context_T) -> bool:
+async def handle_natural_language(bot: NoneBot, ctx: Context_T,
+                                  plugins: Iterable["Plugin"] = None) -> bool:
     """
     Handle a message as natural language.
 
@@ -114,7 +116,11 @@ async def handle_natural_language(bot: NoneBot, ctx: Context_T) -> bool:
     msg_text_length = len(session.msg_text)
 
     futures = []
-    for p in _nl_processors:
+    nl_processors = _nl_processors if not plugins else set()
+    for plugin in plugins:
+        nl_processors |= plugin.nlprocessors
+
+    for p in nl_processors:
         if not p.allow_empty_message and not session.msg:
             # don't allow empty msg, but it is one, so skip to next
             continue

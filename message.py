@@ -1,15 +1,30 @@
+import re
 import asyncio
-from typing import Callable
+from typing import Callable, Iterable
 
 from aiocqhttp.message import *
 
 from . import NoneBot
-from .command import handle_command, SwitchException
 from .log import logger
-from .natural_language import handle_natural_language
 from .typing import Context_T
+from .command import handle_command, SwitchException
+from .natural_language import handle_natural_language
+from .plugin import Plugin
 
 _message_preprocessors = set()
+
+
+class CanceledException(Exception):
+    """
+    Raised by message_preprocessor indicating that
+    the bot should ignore the message
+    """
+
+    def __init__(self, reason):
+        """
+        :param reason: reason to ignore the message
+        """
+        self.reason = reason
 
 
 def message_preprocessor(func: Callable) -> Callable:
@@ -23,20 +38,32 @@ async def handle_message(bot: NoneBot, ctx: Context_T) -> None:
     if not ctx['message']:
         ctx['message'].append(MessageSegment.text(''))
 
-    coros = []
-    for processor in _message_preprocessors:
-        coros.append(processor(bot, ctx))
-    if coros:
-        await asyncio.wait(coros)
-
     raw_to_me = ctx.get('to_me', False)
     _check_at_me(bot, ctx)
     _check_calling_me_nickname(bot, ctx)
     ctx['to_me'] = raw_to_me or ctx['to_me']
 
+    coros = []
+    plugin_filtered = set()
+    for processor in _message_preprocessors:
+        coros.append(processor(bot, ctx))
+    if coros:
+        try:
+            results = await asyncio.gather(*coros)
+        except CanceledException:
+            logger.info(f'Message {ctx["message_id"]} is ignored')
+            return
+
+        for result in results:
+            if isinstance(result, Plugin):
+                plugin_filtered.add(result)
+            elif isinstance(result, Iterable):
+                plugin_filtered |= set(
+                    filter(lambda x: isinstance(x, Plugin), result))
+
     while True:
         try:
-            handled = await handle_command(bot, ctx)
+            handled = await handle_command(bot, ctx, plugins=plugin_filtered)
             break
         except SwitchException as e:
             # we are sure that there is no session existing now
@@ -46,7 +73,7 @@ async def handle_message(bot: NoneBot, ctx: Context_T) -> None:
         logger.info(f'Message {ctx["message_id"]} is handled as a command')
         return
 
-    handled = await handle_natural_language(bot, ctx)
+    handled = await handle_natural_language(bot, ctx, plugins=plugin_filtered)
     if handled:
         logger.info(f'Message {ctx["message_id"]} is handled '
                     f'as natural language')

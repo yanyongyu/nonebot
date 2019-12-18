@@ -1,23 +1,61 @@
-import importlib
 import os
 import re
+import importlib
+from types import ModuleType
 from typing import Any, Set, Optional
 
 from .log import logger
+from .command import CommandFunc
+from .natural_language import NLProcessor
 
 
 class Plugin:
-    __slots__ = ('module', 'name', 'usage')
+    __slots__ = ('module', 'name', 'usage',
+                 'commands', 'nlprocessors', 'subplugins')
 
     def __init__(self, module: Any,
+                 commands: Set[CommandFunc],
+                 nlprocessors: Set[NLProcessor],
                  name: Optional[str] = None,
-                 usage: Optional[Any] = None):
+                 usage: Optional[Any] = None,
+                 subplugins: Set["Plugin"] = set()):
         self.module = module
         self.name = name
         self.usage = usage
+        self.commands = commands
+        self.nlprocessors = nlprocessors
+        self.subplugins = subplugins
+
+    def __str__(self):
+        return f"Plugin name: {self.name}, usage: {self.usage}"
+
+    def __repr__(self):
+        return (f"Plugin({self.module}, name={self.name}, usage={self.usage}, "
+                f"commands={self.commands}, nlprocessors={self.nlprocessors}, "
+                f"subplugins={self.subplugins})")
 
 
 _plugins: Set[Plugin] = set()
+
+
+def get_cmd_nlp_subplugins(_module, depth=True):
+    commands = set()
+    nlprocessors = set()
+    subplugins = set()
+    for attr in dir(_module):
+        func = getattr(_module, attr)
+        if depth and isinstance(func, ModuleType):
+            cmd, nlp, sup = get_cmd_nlp_subplugins(func, False)
+            commands |= cmd
+            nlprocessors |= nlp
+            subplugins |= sup
+        elif isinstance(func, CommandFunc):
+            commands.add(func.cmd.name)
+        elif isinstance(func, NLProcessor):
+            nlprocessors.add(func)
+        elif isinstance(func, set):
+            subplugins |= set(filter(lambda x: isinstance(x, Plugin), func))
+    return commands, nlprocessors, subplugins
 
 
 def load_plugin(module_name: str) -> bool:
@@ -31,7 +69,16 @@ def load_plugin(module_name: str) -> bool:
         module = importlib.import_module(module_name)
         name = getattr(module, '__plugin_name__', None)
         usage = getattr(module, '__plugin_usage__', None)
-        _plugins.add(Plugin(module, name, usage))
+        commands, nlprocessors, subplugins = get_cmd_nlp_subplugins(module)
+        _plugins.add(Plugin(module=module,
+                            commands=commands,
+                            nlprocessors=nlprocessors,
+                            name=name,
+                            usage=usage,
+                            subplugins=subplugins))
+        logger.debug(f"Succeeded to load commands {commands},"
+                     f" nlprocessors {nlprocessors}"
+                     f" subplugins {subplugins}")
         logger.info(f'Succeeded to import "{module_name}"')
         return True
     except Exception as e:
