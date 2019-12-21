@@ -217,7 +217,7 @@ def _find_command(name: Union[str, CommandName_T],
         return None
 
     cmd_tree = cmd_tree if cmd_tree else _registry
-    print(cmd_tree)
+
     for part in cmd_name[:-1]:
         if part not in cmd_tree or not isinstance(cmd_tree[part], dict):
             return None
