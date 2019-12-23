@@ -2,8 +2,9 @@ import re
 import asyncio
 import shlex
 from datetime import datetime
-from typing import (Tuple, Union, Callable, Iterable, Any, Optional, List,
-                    Dict, Awaitable)
+from typing import (
+    Tuple, Union, Callable, Iterable, Any, Optional, List, Dict, Awaitable
+)
 
 from nonebot import NoneBot
 from nonebot import permission as perm
@@ -12,8 +13,10 @@ from nonebot.helpers import context_id, send, render_expression
 from nonebot.log import logger
 from nonebot.message import Message
 from nonebot.session import BaseSession
-from nonebot.typing import (Context_T, CommandName_T, CommandArgs_T,
-                            CommandHandler_T, Message_T, State_T, Filter_T)
+from nonebot.typing import (
+    Context_T, CommandName_T, CommandArgs_T, CommandHandler_T, Message_T,
+    State_T, Filter_T
+)
 
 # key: one segment of command name
 # value: subtree or a leaf Command object
@@ -29,11 +32,15 @@ _sessions = {}  # type: Dict[str, CommandSession]
 
 
 class Command:
-    __slots__ = ('name', 'func', 'permission', 'only_to_me', 'privileged',
-                 'args_parser_func')
+    __slots__ = (
+        'name', 'func', 'permission', 'only_to_me', 'privileged',
+        'args_parser_func'
+    )
 
-    def __init__(self, *, name: CommandName_T, func: CommandHandler_T,
-                 permission: int, only_to_me: bool, privileged: bool):
+    def __init__(
+        self, *, name: CommandName_T, func: CommandHandler_T, permission: int,
+        only_to_me: bool, privileged: bool
+    ):
         self.name = name
         self.func = func
         self.permission = permission
@@ -41,8 +48,9 @@ class Command:
         self.privileged = privileged
         self.args_parser_func: Optional[CommandHandler_T] = None
 
-    async def run(self, session, *, check_perm: bool = True,
-                  dry: bool = False) -> bool:
+    async def run(
+        self, session, *, check_perm: bool = True, dry: bool = False
+    ) -> bool:
         """
         Run the command in a given session.
 
@@ -82,15 +90,18 @@ class Command:
                                     render_expression(
                                         config.
                                         TOO_MANY_VALIDATION_FAILURES_EXPRESSION
-                                    ), **session._current_send_kwargs)
+                                    ), **session._current_send_kwargs
+                                )
 
                         failure_message = e.message
                         if failure_message is None:
                             failure_message = render_expression(
-                                config.DEFAULT_VALIDATION_FAILURE_EXPRESSION)
+                                config.DEFAULT_VALIDATION_FAILURE_EXPRESSION
+                            )
                         # noinspection PyProtectedMember
-                        session.pause(failure_message,
-                                      **session._current_send_kwargs)
+                        session.pause(
+                            failure_message, **session._current_send_kwargs
+                        )
 
                 # passed all filters
                 session.state[session.current_key] = arg
@@ -115,8 +126,9 @@ class Command:
         :param session: CommandSession object
         :return: the session has the permission
         """
-        return await perm.check_permission(session.bot, session.ctx,
-                                           self.permission)
+        return await perm.check_permission(
+            session.bot, session.ctx, self.permission
+        )
 
 
 class CommandFunc:
@@ -138,13 +150,15 @@ class CommandFunc:
         return parser_func
 
 
-def on_command(name: Union[str, CommandName_T],
-               *,
-               aliases: Iterable[str] = (),
-               permission: int = perm.EVERYBODY,
-               only_to_me: bool = True,
-               privileged: bool = False,
-               shell_like: bool = False) -> Callable:
+def on_command(
+    name: Union[str, CommandName_T],
+    *,
+    aliases: Iterable[str] = (),
+    permission: int = perm.EVERYBODY,
+    only_to_me: bool = True,
+    privileged: bool = False,
+    shell_like: bool = False
+) -> Callable:
     """
     Decorator to register a function as a command.
 
@@ -155,6 +169,7 @@ def on_command(name: Union[str, CommandName_T],
     :param privileged: can be run even when there is already a session
     :param shell_like: use shell-like syntax to split arguments
     """
+
     def deco(func: CommandHandler_T) -> CommandHandler_T:
         if not isinstance(name, (str, tuple)):
             raise TypeError('the name of a command must be a str or tuple')
@@ -163,11 +178,13 @@ def on_command(name: Union[str, CommandName_T],
 
         cmd_name = (name, ) if isinstance(name, str) else name
 
-        cmd = Command(name=cmd_name,
-                      func=func,
-                      permission=permission,
-                      only_to_me=only_to_me,
-                      privileged=privileged)
+        cmd = Command(
+            name=cmd_name,
+            func=func,
+            permission=permission,
+            only_to_me=only_to_me,
+            privileged=privileged
+        )
         if shell_like:
 
             async def shell_like_args_parser(session):
@@ -189,9 +206,10 @@ def on_command(name: Union[str, CommandName_T],
     return deco
 
 
-def _construct_command_dict(*command: List[CommandName_T],
-                            base_dict: Dict[str, Union[Dict, Command]] = {}
-                            ) -> Dict[str, Union[Dict, Command]]:
+def _construct_command_dict(
+    *command: List[CommandName_T],
+    base_dict: Dict[str, Union[Dict, Command]] = {}
+) -> Dict[str, Union[Dict, Command]]:
     for name in command:
         cmd_name = (name, ) if isinstance(name, str) else name
         current_parent = base_dict
@@ -199,8 +217,8 @@ def _construct_command_dict(*command: List[CommandName_T],
         try:
             for parent_key in cmd_name[:-1]:
                 current_registry = current_registry[parent_key]
-                current_parent[parent_key] = current_parent.get(
-                    parent_key) or {}
+                current_parent[parent_key] = current_parent.get(parent_key
+                                                                ) or {}
                 current_parent = current_parent[parent_key]
             current_parent[cmd_name[-1]] = current_registry[cmd_name[-1]]
         except KeyError:
@@ -209,9 +227,10 @@ def _construct_command_dict(*command: List[CommandName_T],
     return base_dict or _registry
 
 
-def _find_command(name: Union[str, CommandName_T],
-                  cmd_tree: Dict[str, Union[Dict, Command]] = None
-                  ) -> Optional[Command]:
+def _find_command(
+    name: Union[str, CommandName_T],
+    cmd_tree: Dict[str, Union[Dict, Command]] = None
+) -> Optional[Command]:
     cmd_name = (name, ) if isinstance(name, str) else name
     if not cmd_name:
         return None
@@ -240,6 +259,7 @@ class _FinishException(Exception):
     Raised by session.finish() indicating that the command session
     should be stopped and removed.
     """
+
     def __init__(self, result: bool = True):
         """
         :param result: succeeded to call the command
@@ -257,6 +277,7 @@ class SwitchException(Exception):
     again, the later function should be notified. So this exception
     is designed to be propagated to handle_message().
     """
+
     def __init__(self, new_ctx_message: Message):
         """
         :param new_ctx_message: new message which should be placed in context
@@ -265,18 +286,21 @@ class SwitchException(Exception):
 
 
 class CommandSession(BaseSession):
-    __slots__ = ('cmd', 'current_key', 'current_arg_filters',
-                 '_current_send_kwargs', 'current_arg', '_current_arg_text',
-                 '_current_arg_images', '_state', '_last_interaction',
-                 '_running')
+    __slots__ = (
+        'cmd', 'current_key', 'current_arg_filters', '_current_send_kwargs',
+        'current_arg', '_current_arg_text', '_current_arg_images', '_state',
+        '_last_interaction', '_running'
+    )
 
-    def __init__(self,
-                 bot: NoneBot,
-                 ctx: Context_T,
-                 cmd: Command,
-                 *,
-                 current_arg: str = '',
-                 args: Optional[CommandArgs_T] = None):
+    def __init__(
+        self,
+        bot: NoneBot,
+        ctx: Context_T,
+        cmd: Command,
+        *,
+        current_arg: str = '',
+        args: Optional[CommandArgs_T] = None
+    ):
         super().__init__(bot, ctx)
         self.cmd = cmd  # Command object
 
@@ -347,8 +371,8 @@ class CommandSession(BaseSession):
         Plain text part in the current argument, without any CQ codes.
         """
         if self._current_arg_text is None:
-            self._current_arg_text = Message(
-                self.current_arg).extract_plain_text()
+            self._current_arg_text = Message(self.current_arg
+                                             ).extract_plain_text()
         return self._current_arg_text
 
     @property
@@ -383,12 +407,14 @@ class CommandSession(BaseSession):
         self._current_arg_text = None
         self._current_arg_images = None
 
-    def get(self,
-            key: str,
-            *,
-            prompt: Optional[Message_T] = None,
-            arg_filters: Optional[List[Filter_T]] = None,
-            **kwargs) -> Any:
+    def get(
+        self,
+        key: str,
+        *,
+        prompt: Optional[Message_T] = None,
+        arg_filters: Optional[List[Filter_T]] = None,
+        **kwargs
+    ) -> Any:
         """
         Get an argument with a given key.
 
@@ -451,10 +477,11 @@ class CommandSession(BaseSession):
         raise SwitchException(new_ctx_message)
 
 
-def parse_command(bot: NoneBot,
-                  cmd_string: str,
-                  cmd_tree: Dict[str, Union[Dict, Command]] = None
-                  ) -> Tuple[Optional[Command], Optional[str]]:
+def parse_command(
+    bot: NoneBot,
+    cmd_string: str,
+    cmd_tree: Dict[str, Union[Dict, Command]] = None
+) -> Tuple[Optional[Command], Optional[str]]:
     """
     Parse a command string (typically from a message).
 
@@ -487,8 +514,10 @@ def parse_command(bot: NoneBot,
         logger.debug('It\'s not a command')
         return None, None
 
-    logger.debug(f'Matched command start: '
-                 f'{matched_start}{"(empty)" if not matched_start else ""}')
+    logger.debug(
+        f'Matched command start: '
+        f'{matched_start}{"(empty)" if not matched_start else ""}'
+    )
     full_command = cmd_string[len(matched_start):].lstrip()
 
     if not full_command:
@@ -525,9 +554,9 @@ def parse_command(bot: NoneBot,
     return cmd, ''.join(cmd_remained)
 
 
-async def handle_command(bot: NoneBot,
-                         ctx: Context_T,
-                         plugins: Iterable["Plugin"] = None) -> bool:
+async def handle_command(
+    bot: NoneBot, ctx: Context_T, plugins: Iterable["Plugin"] = None
+) -> bool:
     """
     Handle a message as a command.
 
@@ -540,11 +569,14 @@ async def handle_command(bot: NoneBot,
     cmd_set = set()
     for plugin in plugins:
         cmd_set |= plugin.commands
+        if plugin.subplugins:
+            for each in plugin.subplugins:
+                cmd_set |= each.commands
     cmd_tree = _construct_command_dict(*cmd_set)
 
-    cmd, current_arg = parse_command(bot,
-                                     str(ctx['message']).lstrip(),
-                                     cmd_tree=cmd_tree)
+    cmd, current_arg = parse_command(
+        bot, str(ctx['message']).lstrip(), cmd_tree=cmd_tree
+    )
     is_privileged_cmd = cmd and cmd.privileged
     if is_privileged_cmd and cmd.only_to_me and not ctx['to_me']:
         is_privileged_cmd = False
@@ -567,11 +599,16 @@ async def handle_command(bot: NoneBot,
     session = _sessions.get(ctx_id) if not is_privileged_cmd else None
     if session:
         if session.running:
-            logger.warning(f'There is a session of command '
-                           f'{session.cmd.name} running, notify the user')
+            logger.warning(
+                f'There is a session of command '
+                f'{session.cmd.name} running, notify the user'
+            )
             asyncio.ensure_future(
-                send(bot, ctx,
-                     render_expression(bot.config.SESSION_RUNNING_EXPRESSION)))
+                send(
+                    bot, ctx,
+                    render_expression(bot.config.SESSION_RUNNING_EXPRESSION)
+                )
+            )
             # pretend we are successful, so that NLP won't handle it
             return True
 
@@ -599,20 +636,24 @@ async def handle_command(bot: NoneBot,
         session = CommandSession(bot, ctx, cmd, current_arg=current_arg)
         logger.debug(f'New session of command {session.cmd.name} created')
 
-    return await _real_run_command(session,
-                                   ctx_id,
-                                   check_perm=check_perm,
-                                   disable_interaction=disable_interaction)
+    return await _real_run_command(
+        session,
+        ctx_id,
+        check_perm=check_perm,
+        disable_interaction=disable_interaction
+    )
 
 
-async def call_command(bot: NoneBot,
-                       ctx: Context_T,
-                       name: Union[str, CommandName_T],
-                       *,
-                       current_arg: str = '',
-                       args: Optional[CommandArgs_T] = None,
-                       check_perm: bool = True,
-                       disable_interaction: bool = False) -> bool:
+async def call_command(
+    bot: NoneBot,
+    ctx: Context_T,
+    name: Union[str, CommandName_T],
+    *,
+    current_arg: str = '',
+    args: Optional[CommandArgs_T] = None,
+    check_perm: bool = True,
+    disable_interaction: bool = False
+) -> bool:
     """
     Call a command internally.
 
@@ -637,16 +678,20 @@ async def call_command(bot: NoneBot,
     if not cmd:
         return False
     session = CommandSession(bot, ctx, cmd, current_arg=current_arg, args=args)
-    return await _real_run_command(session,
-                                   context_id(session.ctx),
-                                   check_perm=check_perm,
-                                   disable_interaction=disable_interaction)
+    return await _real_run_command(
+        session,
+        context_id(session.ctx),
+        check_perm=check_perm,
+        disable_interaction=disable_interaction
+    )
 
 
-async def _real_run_command(session: CommandSession,
-                            ctx_id: str,
-                            disable_interaction: bool = False,
-                            **kwargs) -> bool:
+async def _real_run_command(
+    session: CommandSession,
+    ctx_id: str,
+    disable_interaction: bool = False,
+    **kwargs
+) -> bool:
     if not disable_interaction:
         # override session only when interaction is not disabled
         _sessions[ctx_id] = session
@@ -666,8 +711,10 @@ async def _real_run_command(session: CommandSession,
         except (_PauseException, _FinishException, SwitchException) as e:
             raise e
         except Exception as e:
-            logger.error(f'An exception occurred while '
-                         f'running command {session.cmd.name}:')
+            logger.error(
+                f'An exception occurred while '
+                f'running command {session.cmd.name}:'
+            )
             logger.exception(e)
             handled = True
         raise _FinishException(handled)
@@ -676,8 +723,10 @@ async def _real_run_command(session: CommandSession,
         if disable_interaction:
             # if the command needs further interaction, we view it as failed
             return False
-        logger.debug(f'Further interaction needed for '
-                     f'command {session.cmd.name}')
+        logger.debug(
+            f'Further interaction needed for '
+            f'command {session.cmd.name}'
+        )
         # return True because this step of the session is successful
         return True
     except (_FinishException, SwitchException) as e:
@@ -698,8 +747,10 @@ async def _real_run_command(session: CommandSession,
             if ctx_id in _sessions:
                 # make sure there is no session waiting
                 del _sessions[ctx_id]
-            logger.debug(f'Session of command {session.cmd.name} switching, '
-                         f'new context message: {e.new_ctx_message}')
+            logger.debug(
+                f'Session of command {session.cmd.name} switching, '
+                f'new context message: {e.new_ctx_message}'
+            )
             raise e  # this is intended to be propagated to handle_message()
 
 

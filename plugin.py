@@ -10,17 +10,19 @@ from .natural_language import NLProcessor
 
 
 class Plugin:
-    __slots__ = ('module', 'name', 'usage',
+    __slots__ = ('module', 'name', 'description', 'usage',
                  'commands', 'nlprocessors', 'subplugins')
 
     def __init__(self, module: Any,
                  commands: Set[CommandFunc],
                  nlprocessors: Set[NLProcessor],
                  name: Optional[str] = None,
+                 description: Optional[str] = None,
                  usage: Optional[Any] = None,
                  subplugins: Set["Plugin"] = set()):
         self.module = module
         self.name = name
+        self.description = description
         self.usage = usage
         self.commands = commands
         self.nlprocessors = nlprocessors
@@ -68,12 +70,14 @@ def load_plugin(module_name: str) -> bool:
     try:
         module = importlib.import_module(module_name)
         name = getattr(module, '__plugin_name__', None)
+        description = getattr(module, '__plugin_description__', None)
         usage = getattr(module, '__plugin_usage__', None)
         commands, nlprocessors, subplugins = get_cmd_nlp_subplugins(module)
         _plugins.add(Plugin(module=module,
                             commands=commands,
                             nlprocessors=nlprocessors,
                             name=name,
+                            description=description,
                             usage=usage,
                             subplugins=subplugins))
         logger.debug(f"Succeeded to load commands {commands},"
