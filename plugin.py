@@ -32,9 +32,7 @@ class Plugin:
         return f"Plugin name: {self.name}, usage: {self.usage}"
 
     def __repr__(self):
-        return (f"Plugin({self.module}, name={self.name}, usage={self.usage}, "
-                f"commands={self.commands}, nlprocessors={self.nlprocessors}, "
-                f"subplugins={self.subplugins})")
+        return f"Plugin({self.module}, name={self.name}, usage={self.usage})"
 
 
 _plugins: Set[Plugin] = set()
