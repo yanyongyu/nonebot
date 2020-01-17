@@ -27,6 +27,7 @@ PORT: int = 8080
 DEBUG: bool = True
 
 SUPERUSERS: Container[int] = set()
+EXTRA_SELF_ID: Container[int] = set()
 NICKNAME: Union[str, Iterable[str]] = ''
 
 COMMAND_START: Iterable[Union[str, Pattern]] = {'/', '!', '／', '！'}

@@ -312,15 +312,15 @@ class CommandSession(BaseSession):
 
         self._current_send_kwargs: Dict[str, Any] = {}
 
+        self._state: State_T = {}
+        if args:
+            self._state.update(args)
+
         # initialize current argument
         self.current_arg: str = ''  # with potential CQ codes
         self._current_arg_text = None
         self._current_arg_images = None
         self.refresh(ctx, current_arg=current_arg)  # fill the above
-
-        self._state: State_T = {}
-        if args:
-            self._state.update(args)
 
         self._last_interaction = None  # last interaction time of this session
         self._running = False
@@ -403,6 +403,8 @@ class CommandSession(BaseSession):
         :param current_arg: new command argument as a string
         """
         self.ctx = ctx
+        if "state" in self.ctx.keys():
+            self._state.update(self.ctx.pop("state"))
         self.current_arg = current_arg
         self._current_arg_text = None
         self._current_arg_images = None

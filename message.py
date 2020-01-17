@@ -42,6 +42,8 @@ async def handle_message(bot: NoneBot, ctx: Context_T) -> None:
     _check_at_me(bot, ctx)
     _check_calling_me_nickname(bot, ctx)
     ctx['to_me'] = raw_to_me or ctx['to_me']
+    
+    ctx['state'] = {}
 
     coros = []
     plugin_filtered = set()
@@ -86,11 +88,13 @@ def _check_at_me(bot: NoneBot, ctx: Context_T) -> None:
     else:
         # group or discuss
         ctx['to_me'] = False
-        at_me_seg = MessageSegment.at(ctx['self_id'])
+        extra_self_id = bot.config.EXTRA_SELF_ID
+        at_me_seg = list(map(MessageSegment.at, extra_self_id))
+        at_me_seg.append(MessageSegment.at(ctx['self_id']))
 
         # check the first segment
         first_msg_seg = ctx['message'][0]
-        if first_msg_seg == at_me_seg:
+        if first_msg_seg in at_me_seg:
             ctx['to_me'] = True
             del ctx['message'][0]
 
@@ -104,7 +108,7 @@ def _check_at_me(bot: NoneBot, ctx: Context_T) -> None:
                 i -= 1
                 last_msg_seg = ctx['message'][i]
 
-            if last_msg_seg == at_me_seg:
+            if last_msg_seg in at_me_seg:
                 ctx['to_me'] = True
                 del ctx['message'][i:]
 
