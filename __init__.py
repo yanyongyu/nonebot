@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import logging
 from typing import Any, Optional
@@ -71,9 +72,9 @@ def init(config_object: Optional[Any] = None) -> None:
     _bot = NoneBot(config_object)
 
     if _bot.config.DEBUG:
-        logger.setLevel(logging.DEBUG)
+        logger.add(sys.stdout, level="DEBUG")
     else:
-        logger.setLevel(logging.INFO)
+        logger.add(sys.stdout, level="INFO")
 
     _bot.server_app.before_serving(_start_scheduler)
 

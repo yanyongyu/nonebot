@@ -5,12 +5,8 @@ Any other modules in "nonebot" should use "logger" from this module
 to log messages.
 """
 
-import logging
-import sys
+from loguru import logger
 
-logger = logging.getLogger('nonebot')
-default_handler = logging.StreamHandler(sys.stdout)
-default_handler.setFormatter(logging.Formatter(
-    '[%(asctime)s %(name)s] %(levelname)s: %(message)s'
-))
-logger.addHandler(default_handler)
+
+logger.remove()
+# logger.add(sys.stdout, level="DEBUG", filter=debug_filter)
