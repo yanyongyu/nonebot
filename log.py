@@ -9,4 +9,3 @@ from loguru import logger
 
 
 logger.remove()
-# logger.add(sys.stdout, level="DEBUG", filter=debug_filter)
